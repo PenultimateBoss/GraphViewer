@@ -18,5 +18,9 @@
   {
     "outputFile": "Components/Pages/Home.razor.css",
     "inputFile": "Components/Pages/Home.razor.less"
+  },
+  {
+    "outputFile": "Components/Core/LoopEdge.razor.css",
+    "inputFile": "Components/Core/LoopEdge.razor.less"
   }
 ]

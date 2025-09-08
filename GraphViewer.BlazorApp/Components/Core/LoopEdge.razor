@@ -1,0 +1,40 @@
+@code
+{
+    [Parameter] public required SData Data { get; set; }
+}
+
+<path class="LoopEdge" tabindex="0" fill="none"
+    d=@($"M {Data.X} {Data.Y} Q {Data.X + 25} {Data.Y + 25} {Data.X} {Data.Y + 25} Q {Data.X - 25} {Data.Y + 25} {Data.X} {Data.Y} Z")
+    @onkeydown=@DeleteEdge @ondblclick:stopPropagation=@true />
+
+@code
+{
+    #region Instance
+    private void DeleteEdge(KeyboardEventArgs event_args)
+    {
+        if(event_args.Key == "Delete")
+        {
+            Data.Dispose();
+        }
+    }
+    #endregion
+
+    #region NestedTypes
+    public sealed partial class SData(double x, double y) : IDisposable
+    {
+        #region Instance
+        public double X { get; set; } = x;
+        public double Y { get; set; } = y;
+
+        public event Action<SData>? OnDispose;
+        #endregion
+
+        #region IDisposable
+        public void Dispose()
+        {
+            OnDispose?.Invoke(this);
+        }
+        #endregion
+    }
+    #endregion
+}

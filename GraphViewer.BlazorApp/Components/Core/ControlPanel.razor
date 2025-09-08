@@ -21,7 +21,12 @@
     <div class="Controls">
 
     </div>
-    <textarea class="Console" placeholder="..." readonly @bind="CConsole.ConsoleEntry" />
+    <div class="Console" tabindex="0">
+        @foreach(string str in CConsole.ConsoleEntry.Split(Environment.NewLine))
+        {
+            <div>@str</div>
+        }
+    </div>
 </div>
 
 @code

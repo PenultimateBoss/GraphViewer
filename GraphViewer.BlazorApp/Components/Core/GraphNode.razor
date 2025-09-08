@@ -37,6 +37,7 @@
             set
             {
                 field = value;
+                Loop?.X = value;
                 foreach(NodeEdge.Point point in Edges)
                 {
                     point.X = value;
@@ -49,12 +50,14 @@
             set
             {
                 field = value;
+                Loop?.Y = value;
                 foreach(NodeEdge.Point point in Edges)
                 {
                     point.Y = value;
                 }
             }
         } = y;
+        public LoopEdge.SData? Loop { get; internal set; }
         public List<NodeEdge.Point> Edges { get; } = [];
 
         public event Action<SData>? OnDispose;
@@ -77,6 +80,7 @@
         #region IDisposable
         public void Dispose()
         {
+            Loop?.Dispose();
             foreach(NodeEdge.Point point in Edges.ToArray())
             {
                 point.Dispose();

@@ -1,6 +1,7 @@
 @code
 {
     [Parameter] public List<NodeEdge.SData> Edges { get; set; } = [];
+    [Parameter] public List<LoopEdge.SData> Loops { get; set; } = [];
     [Parameter] public List<GraphNode.SData> Nodes { get; set; } = [];
 }
 
@@ -8,6 +9,10 @@
     @foreach(NodeEdge.SData edge in Edges)
     {
         <NodeEdge Data=@edge />
+    }
+    @foreach(LoopEdge.SData loop in Loops)
+    {
+        <LoopEdge Data=@loop />
     }
     @foreach(GraphNode.SData node in Nodes)
     {
@@ -69,7 +74,22 @@
                 edge.OnDispose -= RemoveEdge;
             }  
         }
-        else if(DraggingEdge.StartPoint.X != node.Data.X && DraggingEdge.StartPoint.Y != node.Data.Y)
+        else if(DraggingEdge.StartPoint.X == node.Data.X && DraggingEdge.StartPoint.Y == node.Data.Y)
+        {
+            DraggingEdge.Dispose();
+            DraggingEdge = null;
+            LoopEdge.SData loop = new(node.Data.X, node.Data.Y);
+            loop.OnDispose += RemoveLoop;
+            node.Data.Loop = loop;
+            Loops.Add(loop);
+
+            void RemoveLoop(LoopEdge.SData loop)
+            {
+                Loops.Remove(loop);
+                loop.OnDispose -= RemoveLoop;
+            }
+        }
+        else
         {
             DraggingEdge.EndPoint.X = node.Data.X;
             DraggingEdge.EndPoint.Y = node.Data.Y;
