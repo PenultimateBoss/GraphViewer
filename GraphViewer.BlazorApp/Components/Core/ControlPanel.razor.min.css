@@ -1,1 +1,1 @@
-﻿.ControlPanel{width:50%;height:100%;border:2px solid #000;}
+﻿.ControlPanel{width:50%;height:100%;display:flex;flex-flow:column;border:2px solid #000;}.Controls{width:100%;height:min-content;flex:none;}.Console{width:100%;height:auto;flex:1 1 auto;resize:none;}

@@ -1,1 +1,42 @@
-<div class="ControlPanel"></div>
+@implements IDisposable
+@inject ControlConsole CConsole
+
+@code
+{
+    protected override void OnInitialized()
+    {
+        CConsole.EntryChanged += Render;
+    }
+    protected override void OnAfterRender(bool first_render)
+    {
+        if(first_render is true)
+        {
+            CConsole.WriteLine("Hello");
+            CConsole.WriteLine("World");
+        }
+    }
+}
+
+<div class="ControlPanel">
+    <div class="Controls">
+
+    </div>
+    <textarea class="Console" placeholder="..." readonly @bind="CConsole.ConsoleEntry" />
+</div>
+
+@code
+{
+    #region Instance
+    private void Render()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+    #endregion
+
+    #region IDisposable
+    public void Dispose()
+    {
+        CConsole.EntryChanged -= Render;
+    }
+    #endregion
+}

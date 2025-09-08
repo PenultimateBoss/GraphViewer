@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using GraphViewer.BlazorApp.Services;
 
 namespace GraphViewer.BlazorApp
 {
@@ -15,7 +16,7 @@ namespace GraphViewer.BlazorApp
                 });
 
             builder.Services.AddMauiBlazorWebView();
-
+            builder.Services.AddScoped<ControlConsole>();
 #if DEBUG
     		builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
