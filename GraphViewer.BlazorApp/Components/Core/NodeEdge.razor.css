@@ -1,0 +1,14 @@
+﻿.NodeEdge {
+  stroke: #000000;
+  stroke-width: 5px;
+}
+.NodeEdge:hover {
+  stroke: #404040;
+}
+.NodeEdge:active {
+  stroke: #808080;
+}
+.NodeEdge:focus {
+  outline: none;
+  stroke: #404040;
+}

@@ -1,0 +1,81 @@
+﻿@code
+{
+    [Parameter] public required SData Data { get; set; }
+}
+
+<line class="NodeEdge" tabindex="0" x1=@Data.StartPoint.X y1=@Data.StartPoint.Y x2=@Data.EndPoint.X y2=@Data.EndPoint.Y @onkeydown=@DeleteEdge @ondblclick:stopPropagation=@true />
+
+@code
+{
+    #region Instance
+    private void DeleteEdge(KeyboardEventArgs event_args)
+    {
+        if(event_args.Key == "Delete")
+        {
+            Data.Dispose();
+        }
+    }
+    #endregion
+
+    #region NestedTypes
+    public sealed partial class SData : IDisposable
+    {
+        #region Static
+        public static SData New()
+        {
+            return New(0, 0);
+        }
+        public static SData New(double x, double y)
+        {
+            SData data = new();
+            data.StartPoint = new Point(data, x, y);
+            data.EndPoint = new Point(data, x, y);
+            return data;
+        }
+        #endregion
+
+        #region Instance
+        public Point StartPoint { get; private set; } = null!;
+        public Point EndPoint { get; private set; } = null!;
+
+        public event Action<SData>? OnDispose;
+
+        private SData()
+        {
+            
+        }
+        #endregion
+
+        #region IDisposable
+        public void Dispose()
+        {
+            StartPoint.RaiseOnDispose();
+            EndPoint.RaiseOnDispose();
+            OnDispose?.Invoke(this);
+        }
+        #endregion
+    }
+    public sealed partial class Point(SData parent, double x, double y) : IDisposable
+    {
+        #region Instance
+        public SData Parent { get; } = parent;
+        public double X { get; set; } = x;
+        public double Y { get; set; } = y;
+
+        public event Action<Point>? OnDispose;
+
+        internal void RaiseOnDispose()
+        {
+            OnDispose?.Invoke(this);
+        }
+        #endregion
+
+        #region IDisposable
+        public void Dispose()
+        {
+            Parent.Dispose();
+        }
+        #endregion
+    }
+    #endregion
+}

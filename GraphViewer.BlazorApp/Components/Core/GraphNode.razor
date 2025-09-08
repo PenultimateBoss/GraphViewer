@@ -1,0 +1,89 @@
+@code
+{
+    [Parameter] public required SData Data { get; set; }
+    [Parameter] public EventCallback<GraphNode> OnMouseDown { get; set; }
+    [Parameter] public EventCallback<GraphNode> OnDoubleClick { get; set; }
+}
+
+<circle class="GraphNode" tabindex="0" cx=@Data.X cy=@Data.Y r="2%" @onmousedown=@RaiseOnMouseDown @ondblclick=@RaiseOnDoubleClick @onkeydown=@DeleteNode @ondblclick:stopPropagation=@true />
+
+@code
+{
+    #region Instance
+    private void RaiseOnMouseDown(MouseEventArgs event_args)
+    {
+        OnMouseDown.InvokeAsync(this);
+    }
+    private void RaiseOnDoubleClick(MouseEventArgs event_args)
+    {
+        OnDoubleClick.InvokeAsync(this);
+    }
+    private void DeleteNode(KeyboardEventArgs event_args)
+    {
+        if(event_args.Key == "Delete")
+        {
+            Data.Dispose();
+        }
+    }
+    #endregion
+
+    #region NestedTypes
+    public partial class SData(double x, double y) : IDisposable
+    {
+        #region Instance
+        public double X
+        {
+            get => field;
+            set
+            {
+                field = value;
+                foreach(NodeEdge.Point point in Edges)
+                {
+                    point.X = value;
+                }
+            }
+        } = x;
+        public double Y
+        {
+            get => field;
+            set
+            {
+                field = value;
+                foreach(NodeEdge.Point point in Edges)
+                {
+                    point.Y = value;
+                }
+            }
+        } = y;
+        public List<NodeEdge.Point> Edges { get; } = [];
+
+        public event Action<SData>? OnDispose;
+
+        public void RegisterEdge(NodeEdge.Point point)
+        {
+            point.X = X;
+            point.Y = Y;
+            Edges.Add(point);
+            point.OnDispose += Point_OnDispose;
+
+            void Point_OnDispose(NodeEdge.Point p)
+            {
+                Edges.Remove(p);
+                p.OnDispose -= Point_OnDispose;
+            }
+        }
+        #endregion
+
+        #region IDisposable
+        public void Dispose()
+        {
+            foreach(NodeEdge.Point point in Edges.ToArray())
+            {
+                point.Dispose();
+            }
+            OnDispose?.Invoke(this);
+        }
+        #endregion
+    }
+    #endregion
+}

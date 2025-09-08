@@ -1,0 +1,15 @@
+﻿.GraphNode {
+  fill: #0000FF;
+  stroke: black;
+  stroke-width: 2;
+}
+.GraphNode:hover {
+  fill: #0040FF;
+}
+.GraphNode:active {
+  fill: #0080FF;
+}
+.GraphNode:focus {
+  outline: none;
+  fill: #0040FF;
+}

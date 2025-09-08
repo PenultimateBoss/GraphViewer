@@ -1,0 +1,80 @@
+@code
+{
+    [Parameter] public List<NodeEdge.SData> Edges { get; set; } = [];
+    [Parameter] public List<GraphNode.SData> Nodes { get; set; } = [];
+}
+
+<svg class="GraphPanel" width="100%" height="100%" @ondblclick=@CreateGraphNode @onmousemove=@MoveNodeOrEdge @onmouseup=@GraphNodeDragStop>
+    @foreach(NodeEdge.SData edge in Edges)
+    {
+        <NodeEdge Data=@edge />
+    }
+    @foreach(GraphNode.SData node in Nodes)
+    {
+        <GraphNode Data=@node OnMouseDown=@GraphNodeDragStart OnDoubleClick=@CreateOrConnectEdge />
+    }
+</svg>
+
+@code
+{
+    private GraphNode.SData? DraggingNode { get; set; }
+    private NodeEdge.SData? DraggingEdge { get; set; }
+
+    private void CreateGraphNode(MouseEventArgs event_args)
+    {
+        GraphNode.SData node = new(event_args.OffsetX, event_args.OffsetY);
+        node.OnDispose += RemoveNode;
+        Nodes.Add(node);
+
+        void RemoveNode(GraphNode.SData node)
+        {
+            Nodes.Remove(node);
+            node.OnDispose -= RemoveNode;
+        }
+    }
+    private void GraphNodeDragStart(GraphNode node)
+    {
+        DraggingNode = node.Data;
+    }
+    private void MoveNodeOrEdge(MouseEventArgs event_args)
+    {
+        if(DraggingNode is not null)
+        {
+            DraggingNode.X = event_args.OffsetX;
+            DraggingNode.Y = event_args.OffsetY;
+        }
+        if(DraggingEdge is not null)
+        {
+            DraggingEdge.EndPoint.X = event_args.OffsetX; 
+            DraggingEdge.EndPoint.Y = event_args.OffsetY;
+        }
+    }
+    private void GraphNodeDragStop(MouseEventArgs event_args)
+    {
+        DraggingNode = null;
+    }
+    private void CreateOrConnectEdge(GraphNode node)
+    {
+        GraphNode.SData data = node.Data;
+        if(DraggingEdge is null)
+        {          
+            DraggingEdge = NodeEdge.SData.New(node.Data.X, node.Data.Y);
+            node.Data.RegisterEdge(DraggingEdge.StartPoint);
+            DraggingEdge.OnDispose += RemoveEdge;
+            Edges.Add(DraggingEdge);
+
+            void RemoveEdge(NodeEdge.SData edge)
+            {
+                Edges.Remove(edge);
+                edge.OnDispose -= RemoveEdge;
+            }  
+        }
+        else if(DraggingEdge.StartPoint.X != node.Data.X && DraggingEdge.StartPoint.Y != node.Data.Y)
+        {
+            DraggingEdge.EndPoint.X = node.Data.X;
+            DraggingEdge.EndPoint.Y = node.Data.Y;
+            node.Data.RegisterEdge(DraggingEdge.EndPoint);
+            DraggingEdge = null;
+        }
+    }
+}
