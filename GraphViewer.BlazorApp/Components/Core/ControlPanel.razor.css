@@ -3,12 +3,37 @@
   height: 100%;
   display: flex;
   flex-flow: column;
+}
+.ControlPanel > * {
   border: 2px solid black;
 }
 .Controls {
   width: 100%;
-  height: min-content;
+  height: fit-content;
   flex: none;
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: center;
+}
+.RunButton,
+.StopButton,
+.RunFastButton {
+  width: 35px;
+  height: 35px;
+}
+.Options {
+  width: 100%;
+  height: fit-content;
+  display: flex;
+  flex-flow: column;
+}
+.OrderDirection {
+  width: 100%;
+  height: fit-content;
+  display: flex;
+  flex-flow: row;
+  align-items: center;
 }
 .Console {
   width: 100%;

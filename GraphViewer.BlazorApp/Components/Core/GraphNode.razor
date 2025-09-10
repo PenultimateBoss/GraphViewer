@@ -1,34 +1,70 @@
 @code
 {
     [Parameter] public required SData Data { get; set; }
-    [Parameter] public EventCallback<GraphNode> OnMouseDown { get; set; }
-    [Parameter] public EventCallback<GraphNode> OnDoubleClick { get; set; }
+    [Parameter] public required int Index { get; set; }
+    [Parameter] public EventCallback<GraphNode.SData> OnMouseDown { get; set; }
+    [Parameter] public EventCallback<GraphNode.SData> OnDoubleClick { get; set; }
+    [Parameter] public EventCallback<GraphNode.SData> NodeStateChanged { get; set; }
 }
 
-<circle class="GraphNode" tabindex="0" cx=@Data.X cy=@Data.Y r="2%" @onmousedown=@RaiseOnMouseDown @ondblclick=@RaiseOnDoubleClick @onkeydown=@DeleteNode @ondblclick:stopPropagation=@true />
+<g class="GraphNode" tabindex="0" data-state=@Data.State
+    @onmousedown=@RaiseOnMouseDown @onmousedown:stopPropagation
+    @ondblclick=@RaiseOnDoubleClick @ondblclick:stopPropagation @ondblclick:preventDefault
+    @onkeydown=@OnKeyDown @onkeydown:stopPropagation @onkeydown:preventDefault>
+    <circle class="GraphNode-Circle" cx=@Data.X cy=@Data.Y r="25px" />
+    <foreignObject class="GraphNode-HTML" width="50px" height="50px" x=@(Data.X - 25) y=@(Data.Y - 25)>
+        <div class="NodeText">
+            @if(Data.State is NodeState.None)
+            {
+                <text>@Index</text>
+            }
+            else if((Data.State & NodeState.Source) is not 0)
+            {
+                <text>S[@Index]</text>
+            }
+            else if((Data.State & NodeState.Destination) is not 0)
+            {
+                <text>D[@Index]</text>
+            }
+        </div>
+    </foreignObject>
+</g>
 
 @code
 {
-    #region Instance
-    private void RaiseOnMouseDown(MouseEventArgs event_args)
+    private void RaiseOnMouseDown()
     {
-        OnMouseDown.InvokeAsync(this);
+        OnMouseDown.InvokeAsync(Data);
     }
-    private void RaiseOnDoubleClick(MouseEventArgs event_args)
+    private void RaiseOnDoubleClick()
     {
-        OnDoubleClick.InvokeAsync(this);
+        OnDoubleClick.InvokeAsync(Data);
     }
-    private void DeleteNode(KeyboardEventArgs event_args)
+    private void OnKeyDown(KeyboardEventArgs event_args)
     {
-        if(event_args.Key == "Delete")
+        switch(event_args.Key)
         {
-            Data.Dispose();
+            case "Delete":
+            {
+                Data.Dispose();
+                break;
+            }
+            case "S" or "s":
+            {
+                Data.State = NodeState.Source;
+                NodeStateChanged.InvokeAsync(Data);
+                break;
+            }
+            case "D" or "d":
+            {
+                Data.State = NodeState.Destination;
+                NodeStateChanged.InvokeAsync(Data);
+                break;
+            }
         }
     }
-    #endregion
 
-    #region NestedTypes
-    public partial class SData(double x, double y) : IDisposable
+    public sealed partial class SData(double x, double y) : IDisposable
     {
         #region Instance
         public double X
@@ -37,8 +73,8 @@
             set
             {
                 field = value;
-                Loop?.X = value;
-                foreach(NodeEdge.Point point in Edges)
+                LoopEdge?.X = value;
+                foreach(NodeEdge.Point point in EdgePoints)
                 {
                     point.X = value;
                 }
@@ -50,29 +86,38 @@
             set
             {
                 field = value;
-                Loop?.Y = value;
-                foreach(NodeEdge.Point point in Edges)
+                LoopEdge?.Y = value;
+                foreach(NodeEdge.Point point in EdgePoints)
                 {
                     point.Y = value;
                 }
             }
         } = y;
-        public LoopEdge.SData? Loop { get; internal set; }
-        public List<NodeEdge.Point> Edges { get; } = [];
+        public NodeState State { get; set; }
+        internal LoopEdge.SData? LoopEdge { get; private set; }
+        internal List<NodeEdge.Point> EdgePoints { get; } = [];
 
         public event Action<SData>? OnDispose;
 
-        public void RegisterEdge(NodeEdge.Point point)
+        public void AddLoopEdge()
+        {
+            LoopEdge = new LoopEdge.SData(X, Y);
+        }
+        public void RemoveLoopEdge()
+        {
+            LoopEdge = null;
+        }
+        public void AddEdgePoint(NodeEdge.Point point)
         {
             point.X = X;
             point.Y = Y;
-            Edges.Add(point);
-            point.OnDispose += Point_OnDispose;
+            point.OnDispose += RemovePoint;
+            EdgePoints.Add(point);
 
-            void Point_OnDispose(NodeEdge.Point p)
+            void RemovePoint(NodeEdge.Point point)
             {
-                Edges.Remove(p);
-                p.OnDispose -= Point_OnDispose;
+                EdgePoints.Remove(point);
+                point.OnDispose -= RemovePoint;
             }
         }
         #endregion
@@ -80,14 +125,21 @@
         #region IDisposable
         public void Dispose()
         {
-            Loop?.Dispose();
-            foreach(NodeEdge.Point point in Edges.ToArray())
+            foreach(NodeEdge.Point point in EdgePoints.ToArray())
             {
                 point.Dispose();
             }
+            RemoveLoopEdge();
             OnDispose?.Invoke(this);
         }
         #endregion
     }
-    #endregion
+    [Flags] public enum NodeState
+    {
+        None = 0,
+        Source = 1,
+        Destination = 2,
+        Current = 4,
+        PathPart = 8,
+    }
 }

@@ -3,21 +3,19 @@
     [Parameter] public required SData Data { get; set; }
 }
 
-<line class="NodeEdge" tabindex="0" x1=@Data.StartPoint.X y1=@Data.StartPoint.Y x2=@Data.EndPoint.X y2=@Data.EndPoint.Y @onkeydown=@DeleteEdge @ondblclick:stopPropagation=@true />
+<line class="NodeEdge" tabindex="0" x1=@Data.StartPoint.X y1=@Data.StartPoint.Y x2=@Data.EndPoint.X y2=@Data.EndPoint.Y data-path=@Data.IsPathPart
+    @onkeydown=@DeleteEdge @onkeydown:stopPropagation @onkeydown:preventDefault />
 
 @code
 {
-    #region Instance
     private void DeleteEdge(KeyboardEventArgs event_args)
     {
-        if(event_args.Key == "Delete")
+        if(event_args.Key is "Delete")
         {
             Data.Dispose();
         }
     }
-    #endregion
 
-    #region NestedTypes
     public sealed partial class SData : IDisposable
     {
         #region Static
@@ -27,9 +25,13 @@
         }
         public static SData New(double x, double y)
         {
+            return New(x, y, x, y);
+        }
+        public static SData New(double x1, double y1, double x2, double y2)
+        {
             SData data = new();
-            data.StartPoint = new Point(data, x, y);
-            data.EndPoint = new Point(data, x, y);
+            data.StartPoint = new Point(data, x1, y1);
+            data.EndPoint = new Point(data, x2, y2);
             return data;
         }
         #endregion
@@ -37,20 +39,16 @@
         #region Instance
         public Point StartPoint { get; private set; } = null!;
         public Point EndPoint { get; private set; } = null!;
+        public bool IsPathPart { get; set; } = false;
 
         public event Action<SData>? OnDispose;
-
-        private SData()
-        {
-            
-        }
         #endregion
 
         #region IDisposable
         public void Dispose()
         {
-            StartPoint.RaiseOnDispose();
-            EndPoint.RaiseOnDispose();
+            StartPoint.InternalDispose();
+            EndPoint.InternalDispose();
             OnDispose?.Invoke(this);
         }
         #endregion
@@ -64,7 +62,7 @@
 
         public event Action<Point>? OnDispose;
 
-        internal void RaiseOnDispose()
+        internal void InternalDispose()
         {
             OnDispose?.Invoke(this);
         }
@@ -77,5 +75,4 @@
         }
         #endregion
     }
-    #endregion
 }

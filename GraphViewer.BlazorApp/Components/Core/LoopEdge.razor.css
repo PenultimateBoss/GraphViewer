@@ -12,3 +12,6 @@
   outline: none;
   stroke: #404040;
 }
+.LoopEdge[data-path] {
+  stroke: #FF0000;
+}

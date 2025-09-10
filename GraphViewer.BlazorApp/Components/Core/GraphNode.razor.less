@@ -1,20 +1,47 @@
 .GraphNode
 {
-    fill: #0000FF;
-    stroke: black;
-    stroke-width: 2;
-
-    &:hover
+    &:hover .GraphNode-Circle
     {
         fill: #0040FF;
     }
-    &:active
+    &:active .GraphNode-Circle
     {
-        fill: #0080FF;
+        fill: #00A0FF;
+    }
+    &[data-state*="Source"] .GraphNode-Circle, &[data-state*="Destination"] .GraphNode-Circle
+    {
+        fill: #00FF00;
+    }
+    &[data-state*="Current"] .GraphNode-Circle
+    {
+        fill: #FFFF00
+    }
+    &[data-state*="PathPart"] .GraphNode-Circle
+    {
+        fill: #FF0000
     }
     &:focus
     {
         outline: none;
-        fill: #0040FF;
+
+        & .GraphNode-Circle
+        {
+            fill: #00FFFF;
+        }
     }
+}
+.GraphNode-Circle
+{
+    fill: #0000FF;
+    stroke: black;
+    stroke-width: 2px;
+}
+.NodeText
+{
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
 }

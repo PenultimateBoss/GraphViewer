@@ -1,4 +1,4 @@
-@implements IDisposable
+﻿@implements IDisposable
 @inject ControlConsole CConsole
 
 @code
@@ -19,7 +19,15 @@
 
 <div class="ControlPanel">
     <div class="Controls">
-
+        <button class="RunFastButton" type="button">⏩</button>
+        <button class="RunButton" type="button">▶️</button>
+        <button class="StopButton" type="button">⏹</button>
+    </div>
+    <div class="Options">
+        <div class="OrderDirection">
+            <input type="checkbox" />
+            <span style="user-select: none">reverse order direction</span>
+        </div>
     </div>
     <div class="Console" tabindex="0">
         @foreach(string str in CConsole.ConsoleEntry.Split(Environment.NewLine))

@@ -12,3 +12,6 @@
   outline: none;
   stroke: #404040;
 }
+.NodeEdge[data-path] {
+  stroke: #FF0000;
+}
