@@ -1,5 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
-using GraphViewer.BlazorApp.Services;
+﻿using Blazorise;
+using Blazorise.Tailwind;
+using Blazorise.Icons.FontAwesome;
+using Microsoft.Extensions.Logging;
 
 namespace GraphViewer.BlazorApp
 {
@@ -8,15 +10,12 @@ namespace GraphViewer.BlazorApp
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
-            builder
-                .UseMauiApp<App>()
-                .ConfigureFonts(fonts =>
-                {
-                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                });
-
+            builder.UseMauiApp<App>().ConfigureFonts(fonts =>
+            {
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+            });
             builder.Services.AddMauiBlazorWebView();
-            builder.Services.AddScoped<ControlConsole>();
+            builder.Services.AddBlazorise().AddFontAwesomeIcons().AddTailwindProviders();
 #if DEBUG
     		builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
