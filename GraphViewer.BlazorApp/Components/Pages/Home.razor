@@ -1,3 +1,41 @@
 ﻿@page "/"
 
-<Heading TextColor=@TextColor.Black50>Hello, world!</Heading>
+@code
+{
+    protected override void OnInitialized()
+    {
+        BlazorDiagramOptions options = new()
+        {
+            AllowMultiSelection = true
+        };
+        BlazorDiagram = new BlazorDiagram(options);
+
+        var firstNode = BlazorDiagram.Nodes.Add(new NodeModel(position: new Point(50, 50))
+        {
+            Title = "Node 1"
+        });
+        var secondNode = BlazorDiagram.Nodes.Add(new NodeModel(position: new Point(200, 100))
+        {
+            Title = "Node 2"
+        });
+        var leftPort = secondNode.AddPort(PortAlignment.Left);
+        var rightPort = secondNode.AddPort(PortAlignment.Right);
+        var sourceAnchor = new ShapeIntersectionAnchor(firstNode);
+        var targetAnchor = new SinglePortAnchor(leftPort);
+        var link = BlazorDiagram.Links.Add(new LinkModel(sourceAnchor, targetAnchor));
+    }
+}
+
+<Splitter Width=@Width.Is100 Height=@Height.Is100 Direction=@SplitterDirection.Horizontal>
+    <SplitterSection Width=@Width.Is50 Height=@Height.Is100 Display=@Display.Flex Flex=@Flex.AlignItems.Center.JustifyContent.Center Border=@Border.Dark.OnAll>Section 1</SplitterSection>
+    <SplitterSection Width=@Width.Is50 Height=@Height.Is100 Display=@Display.Flex Flex=@Flex.AlignItems.Center.JustifyContent.Center Border=@Border.Dark.OnAll>
+        <CascadingValue Value=@BlazorDiagram IsFixed>
+            <DiagramCanvas />
+        </CascadingValue>
+    </SplitterSection>
+</Splitter>
+
+@code
+{
+    public BlazorDiagram BlazorDiagram { get; private set; } = null!;
+}

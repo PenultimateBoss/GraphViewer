@@ -14,13 +14,12 @@ namespace GraphViewer.BlazorApp
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
             });
+            builder.Services.AddBlazorise().AddFontAwesomeIcons().AddTailwindProviders().AddTailwindComponents();
             builder.Services.AddMauiBlazorWebView();
-            builder.Services.AddBlazorise().AddFontAwesomeIcons().AddTailwindProviders();
 #if DEBUG
     		builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
 #endif
-
             return builder.Build();
         }
     }
