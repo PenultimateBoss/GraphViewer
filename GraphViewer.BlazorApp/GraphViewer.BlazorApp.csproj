@@ -20,6 +20,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
+		<LangVersion>preview</LangVersion>
 
         <!-- Display name -->
         <ApplicationTitle>GraphViewer.BlazorApp</ApplicationTitle>
@@ -73,6 +74,10 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.5" />
         <PackageReference Include="Z.Blazor.Diagrams" Version="3.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Components\Core\" />
     </ItemGroup>
 
 </Project>

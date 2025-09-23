@@ -1,4 +1,5 @@
 /*! tailwindcss v4.1.13 | MIT License | https://tailwindcss.com */
+@layer properties;
 @layer theme, base, components, utilities;
 @layer theme {
   :root, :host {
@@ -6,10 +7,7 @@
     'Noto Color Emoji';
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
-    --color-red-400: oklch(70.4% 0.191 22.216);
-    --color-red-600: oklch(57.7% 0.245 27.325);
-    --text-lg: 1.125rem;
-    --text-lg--line-height: calc(1.75 / 1.125);
+    --color-black: #000;
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
   }
@@ -169,11 +167,95 @@
   .contents {
     display: contents;
   }
-  .cursor-row-resize {
-    cursor: row-resize;
+  .flex {
+    display: flex;
+  }
+  .aspect-square {
+    aspect-ratio: 1 / 1;
+  }
+  .h-\[2em\] {
+    height: 2em;
+  }
+  .h-auto {
+    height: auto;
+  }
+  .h-full {
+    height: 100%;
+  }
+  .w-auto {
+    width: auto;
+  }
+  .w-full {
+    width: 100%;
+  }
+  .flex-none {
+    flex: none;
+  }
+  .grow {
+    flex-grow: 1;
+  }
+  .flex-col {
+    flex-direction: column;
+  }
+  .flex-row {
+    flex-direction: row;
+  }
+  .items-center {
+    align-items: center;
+  }
+  .justify-center {
+    justify-content: center;
+  }
+  .gap-\[5px\] {
+    gap: 5px;
+  }
+  .space-y-\[5px\] {
+    :where(& > :not(:last-child)) {
+      --tw-space-y-reverse: 0;
+      margin-block-start: calc(5px * var(--tw-space-y-reverse));
+      margin-block-end: calc(5px * calc(1 - var(--tw-space-y-reverse)));
+    }
+  }
+  .p-\[2px\] {
+    padding: 2px;
+  }
+  .p-\[5px\] {
+    padding: 5px;
+  }
+  .text-black {
+    color: var(--color-black);
   }
 }
 html, body, #app {
   width: 100%;
   height: 100%;
+}
+.default-node {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+}
+.graph-node[data-state*="PathPart"] > .default-node {
+  background-color: indianred;
+}
+.graph-node[data-state*="Source"] > .default-node {
+  background-color: forestgreen;
+}
+.graph-node[data-state*="Destination"] > .default-node {
+  background-color: forestgreen;
+}
+.graph-node[data-state*="Current"] > .default-node {
+  background-color: yellow;
+}
+@property --tw-space-y-reverse {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}
+@layer properties {
+  @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
+    *, ::before, ::after, ::backdrop {
+      --tw-space-y-reverse: 0;
+    }
+  }
 }

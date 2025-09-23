@@ -1,0 +1,94 @@
+@code
+{
+    [Parameter] public required Model Node { get; set; }
+}
+
+<Div Class="graph-node" data-state=@Node.State.ToString()>
+    <NodeWidget Node=@Node />
+</Div>
+
+@code
+{
+    [Flags] public enum State
+    {
+        None = 0,
+        PathPart = 1,
+        Source = 2,
+        Destination = 4,
+        Current = 8,
+    }
+    public sealed partial class Model : NodeModel, IDisposable
+    {
+        private LinkModel? Loop { get; set; }
+        public State State
+        {
+            get => field;
+            set
+            {
+                field = value;
+                OrderToTitle(this);
+            }
+        }
+
+        public Model(Point? position = null) : base(position)
+        {
+            Title = Order.ToString();
+            OrderChanged += OrderToTitle;
+        }
+        public Model(string id, Point? position = null) : base(id, position)
+        {
+            Title = Order.ToString();
+        }
+
+        private void RemoveLoop(BaseLinkModel? link)
+        {
+            if(link == Loop)
+            {
+                Loop = null;
+                link?.Diagram?.Links.Removed -= RemoveLoop;
+            }
+        }
+        public void ToogleLoop(Diagram diagram)
+        {
+            if(Loop is null)
+            {
+                Loop = new(new ShapeIntersectionAnchor(this), new PositionAnchor(new Point(0, 0)))
+                {
+                    PathGenerator = new LoopPathGenerator()
+                };
+                diagram.Links.Add(Loop);
+                diagram.Links.Removed += RemoveLoop;
+            }
+            else
+            {
+                diagram.Links.Remove(Loop);
+                Loop = null;
+            }
+        }
+        private void OrderToTitle(SelectableModel? model)
+        {
+            if((State & State.Source) is not 0)
+            {
+                Title = $"S[{Order}]";
+            }
+            else if((State & State.Destination) is not 0)
+            {
+                Title = $"D[{Order}]";
+            }
+            else
+            {
+                Title = Order.ToString();
+            }
+            Refresh();
+        }
+
+        public void Dispose()
+        {
+            OrderChanged -= OrderToTitle;
+        }
+        public override IShape GetShape()
+        {
+            return Shapes.Circle(this);
+        }
+    }
+}

@@ -2,6 +2,7 @@
 using Blazorise.Tailwind;
 using Blazorise.Icons.FontAwesome;
 using Microsoft.Extensions.Logging;
+using GraphViewer.BlazorApp.Services;
 
 namespace GraphViewer.BlazorApp
 {
@@ -16,8 +17,10 @@ namespace GraphViewer.BlazorApp
             });
             builder.Services.AddBlazorise().AddFontAwesomeIcons().AddTailwindProviders().AddTailwindComponents();
             builder.Services.AddMauiBlazorWebView();
+            builder.Services.AddScoped<GraphConsole>();
+            builder.Services.AddScoped<GraphDebugger>();
 #if DEBUG
-    		builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
 #endif
             return builder.Build();
