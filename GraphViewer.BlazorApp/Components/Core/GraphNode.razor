@@ -1,5 +1,6 @@
 @code
 {
+    [CascadingParameter] public required BlazorDiagram BlazorDiagram { get; set; }
     [Parameter] public required Model Node { get; set; }
 }
 
@@ -19,7 +20,7 @@
     }
     public sealed partial class Model : NodeModel, IDisposable
     {
-        private LinkModel? Loop { get; set; }
+        #region Instance
         public State State
         {
             get => field;
@@ -38,34 +39,10 @@
         public Model(string id, Point? position = null) : base(id, position)
         {
             Title = Order.ToString();
+            OrderChanged += OrderToTitle;
         }
 
-        private void RemoveLoop(BaseLinkModel? link)
-        {
-            if(link == Loop)
-            {
-                Loop = null;
-                link?.Diagram?.Links.Removed -= RemoveLoop;
-            }
-        }
-        public void ToogleLoop(Diagram diagram)
-        {
-            if(Loop is null)
-            {
-                Loop = new(new ShapeIntersectionAnchor(this), new PositionAnchor(new Point(0, 0)))
-                {
-                    PathGenerator = new LoopPathGenerator()
-                };
-                diagram.Links.Add(Loop);
-                diagram.Links.Removed += RemoveLoop;
-            }
-            else
-            {
-                diagram.Links.Remove(Loop);
-                Loop = null;
-            }
-        }
-        private void OrderToTitle(SelectableModel? model)
+        private void OrderToTitle(Blazor.Diagrams.Core.Models.Base.Model? model)
         {
             if((State & State.Source) is not 0)
             {
@@ -79,16 +56,21 @@
             {
                 Title = Order.ToString();
             }
-            Refresh();
         }
+        #endregion
 
-        public void Dispose()
-        {
-            OrderChanged -= OrderToTitle;
-        }
+        #region Base
         public override IShape GetShape()
         {
             return Shapes.Circle(this);
         }
+        #endregion
+        
+        #region IDisposable
+        public void Dispose()
+        {
+            OrderChanged -= OrderToTitle;
+        }
+        #endregion
     }
 }

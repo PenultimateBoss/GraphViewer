@@ -7,20 +7,6 @@
 {
     protected override void OnInitialized()
     {
-        BlazorDiagramOptions options = new()
-        {
-            AllowMultiSelection = true
-        };
-        BlazorDiagram = new BlazorDiagram(options);
-        BlazorDiagram.RegisterComponent<GraphNode.Model, GraphNode>();
-        BlazorDiagram.UnregisterBehavior<DragMovablesBehavior>();
-        BlazorDiagram.RegisterBehavior(new GraphDragBehavior(BlazorDiagram));
-        BlazorDiagram.RegisterBehavior(new AddNodeBehavior(BlazorDiagram));
-        KeyboardShortcutsBehavior ksb = BlazorDiagram.GetBehavior<KeyboardShortcutsBehavior>()!;
-        ksb.SetShortcut("l", ctrl: true, shift: false, alt: false, ToogleLoop);
-        ksb.SetShortcut("s", ctrl: true, shift: false, alt: false, SetSourceNode);
-        ksb.SetShortcut("d", ctrl: true, shift: false, alt: false, SetDestinationNode);
-        BlazorDiagram.Nodes.Removed += ReorderNodes;
         GConsole.OnEntryChange += Rerender;
         GDebugger.Rerender += Rerender;
     }
@@ -31,12 +17,20 @@
         <Div Class="w-full h-full flex flex-col p-[5px] space-y-[5px]">
             <Div Class="w-full h-[2em] flex flex-row items-center justify-center flex-none gap-[5px]">
                 <Button Class="w-auto h-full aspect-square" Border=@Border.Is2.Dark Disabled=@GDebugger.Running Clicked=@OnStartClick>▶</Button>
-                <Button Class="w-auto h-full aspect-square" Border=@Border.Is2.Dark Disabled=@(!GDebugger.Running) Clicked=@OnStepClick>⏭️</Button>
                 <Button Class="w-auto h-full aspect-square" Border=@Border.Is2.Dark Disabled=@(!GDebugger.Running) Clicked=@OnStopClick>⏹</Button>
-            </Div>
-            <Check Class="flex-none" TValue="bool" @bind-Checked=@ReverseOrder>
-                <Span Class="text-black">ReverseOrder</Span>
-            </Check>
+            </Div>         
+            <Addons Display=@Display.Flex Flex=@Flex.AlignItems.Center>
+                <AddonLabel TextColor=@TextColor.Black50>ReverseOrder</AddonLabel>
+                <Addon AddonType=@AddonType.Body>
+                    <Check Class="flex-none" TValue="bool" @bind-Checked=@ReverseOrder />
+                </Addon>
+            </Addons>
+            <Addons Display=@Display.Flex Flex=@Flex.AlignItems.Center Border=@Border.Is1.Rounded.Dark>
+                <AddonLabel TextColor=@TextColor.Black50>StepTime(sec / 2)</AddonLabel>
+                <Addon AddonType=@AddonType.Body>
+                    <NumericEdit TValue="int" Min=@(1) @bind-Value=@GDebugger.StepTime />
+                </Addon>
+            </Addons>
             <Div Class="w-full h-auto grow p-[2px] flex flex-col" Border=@Border.Rounded.Is2.Dark>
                 @foreach(string str in GConsole.Entry.Split(Environment.NewLine))
                 {
@@ -45,112 +39,27 @@
             </Div>
         </Div>
     </SplitterSection>
-    <SplitterSection Width=@Width.Is50 Height=@Height.Is100 Border=@Border.Is2.Dark>
-        <CascadingValue Value=@BlazorDiagram IsFixed>
-            <DiagramCanvas>
-                <Widgets>
-                    <SelectionBoxWidget />
-                    <GridWidget Mode=@GridMode.Line Size=@(30.0) />
-                </Widgets>
-            </DiagramCanvas>
-        </CascadingValue>
+    <SplitterSection Width=@Width.Is50 Height=@Height.Is100 Border=@Border.Is2.Dark Position=@Position.Relative>
+        <GraphCanvas @ref=@GraphCanvas />
     </SplitterSection>
 </Splitter>
 
 @code
 {
-    public BlazorDiagram BlazorDiagram { get; private set; } = null!;
+    private GraphCanvas GraphCanvas { get; set; } = null!;
     private bool ReverseOrder { get; set; } = false;
 
-    private void ReorderNodes(NodeModel _)
-    {
-        foreach((int index, NodeModel node) in BlazorDiagram.Nodes.Index())
-        {
-            node.Order = index + 1;
-            node.Refresh();
-        }
-        BlazorDiagram.Refresh();
-        InvokeAsync(StateHasChanged);
-    }
-    private ValueTask ToogleLoop(Diagram diagram)
-    {
-        foreach(SelectableModel model in diagram.GetSelectedModels())
-        {
-            if(model.Locked is false && model is GraphNode.Model node)
-            {
-                node.ToogleLoop(diagram);
-            }
-        }
-        InvokeAsync(StateHasChanged);
-        return ValueTask.CompletedTask;
-    }
-    private ValueTask SetSourceNode(Diagram diagram)
-    {
-        if(diagram.GetSelectedModels().FirstOrDefault() is not GraphNode.Model node)
-        {
-            return ValueTask.CompletedTask;
-        }
-        if((node.State & GraphNode.State.Destination) is not 0)
-        {
-            GraphNode.Model? model = diagram.Nodes.FirstOrDefault(node => node is GraphNode.Model graph_node && (graph_node.State & GraphNode.State.Source) is not 0) as GraphNode.Model;
-            model!.State |= GraphNode.State.Destination;
-            model.State &= ~GraphNode.State.Source;
-            model.Refresh();
-        }
-        node.State |= GraphNode.State.Source;
-        node.State &= ~GraphNode.State.Destination;
-        node.Refresh();
-        foreach(NodeModel base_node in diagram.Nodes)
-        {
-            if(base_node is GraphNode.Model node2 && node2 != node)
-            {
-                node2.State &= ~GraphNode.State.Source;
-            }
-        }
-        InvokeAsync(StateHasChanged);
-        return ValueTask.CompletedTask;
-    }
-    private ValueTask SetDestinationNode(Diagram diagram)
-    {
-        if(diagram.GetSelectedModels().FirstOrDefault() is not GraphNode.Model node)
-        {
-            return ValueTask.CompletedTask;
-        }
-        if((node.State & GraphNode.State.Source) is not 0)
-        {
-            GraphNode.Model? model = diagram.Nodes.FirstOrDefault(node => node is GraphNode.Model graph_node && (graph_node.State & GraphNode.State.Destination) is not 0) as GraphNode.Model;
-            model!.State |= GraphNode.State.Source;
-            model.State &= ~GraphNode.State.Destination;
-            model.Refresh();
-        }
-        node.State |= GraphNode.State.Destination;
-        node.State &= ~GraphNode.State.Source;
-        node.Refresh();
-        foreach(NodeModel base_node in diagram.Nodes)
-        {
-            if(base_node is GraphNode.Model node2 && node2 != node)
-            {
-                node2.State &= ~GraphNode.State.Destination;
-            }
-        }
-        InvokeAsync(StateHasChanged);
-        return ValueTask.CompletedTask;
-    }
     private void Rerender()
     {
         InvokeAsync(StateHasChanged);        
     }
     private async void OnStartClick()
     {
-        await GDebugger.RunAsync(BlazorDiagram, ReverseOrder);
+        await GDebugger.RunAsync(GraphCanvas.BlazorDiagram, ReverseOrder);
     }
-    private async void OnStopClick()
+    private void OnStopClick()
     {
-        await GDebugger.StopAsync(BlazorDiagram);
-    }
-    private void OnStepClick()
-    {
-        GDebugger.RunSignal.Set();
+        GDebugger.Stop(GraphCanvas.BlazorDiagram);
     }
 
     public void Dispose()

@@ -14,13 +14,11 @@ html, body, #app
 .graph-node[data-state*="PathPart"] > .default-node {
     background-color: indianred;
 }
-.graph-node[data-state*="Source"] > .default-node
-{
+.graph-node[data-state*="Source"] > .default-node {
     background-color: forestgreen;
 }
-.graph-node[data-state*="Destination"] > .default-node
-{
-    background-color: forestgreen;
+.graph-node[data-state*="Destination"] > .default-node {
+    background-color: darkcyan;
 }
 .graph-node[data-state*="Current"] > .default-node {
     background-color: yellow;

@@ -1,4 +1,5 @@
 ﻿using Blazor.Diagrams;
+using System.Diagnostics;
 using Blazor.Diagrams.Core.Models;
 using Blazor.Diagrams.Core.Models.Base;
 using GraphViewer.BlazorApp.Components.Core;
@@ -7,16 +8,16 @@ namespace GraphViewer.BlazorApp.Services;
 
 public sealed class GraphDebugger(GraphConsole GConsole)
 {
-    public bool Running { get; set; }
-    public CancellationTokenSource CancellationSource { get; private set; } = new();
-    public AutoResetEvent RunSignal { get; private set; } = new(false);
+    public bool Running { get; set; } = false;
+    public int StepTime { get; set; } = 1;
+    public int ActionCount { get; private set; } = 0;
+    public HashSet<GraphNode.Model> OpenedNodes { get; } = [];
 
     public event Action? Rerender;
 
     public async Task RunAsync(BlazorDiagram diagram, bool reverse_order)
     {
-        GConsole.Clear();
-        await StopAsync(diagram);
+        Stop(diagram);
         if(Running is true)
         {
             return;
@@ -47,7 +48,7 @@ public sealed class GraphDebugger(GraphConsole GConsole)
             return;
         }
         Running = true;
-        await Task.Run(RunSync, CancellationSource.Token);
+        await Task.Run(RunSync);
 
         static GraphNode.Model? FindSource(BlazorDiagram diagram)
         {
@@ -59,14 +60,16 @@ public sealed class GraphDebugger(GraphConsole GConsole)
         }
         void RunSync()
         {
+            TimeSpan time = TimeSpan.Zero;
+            long timestamp = Stopwatch.GetTimestamp();
             Stack<GraphNode.Model> visited_nodes = [];
             Stack<IEnumerable<BaseLinkModel>> links_to_visit = [];
             visited_nodes.Push(source);
             source.State |= GraphNode.State.Current;
             source.State |= GraphNode.State.PathPart;
             source.Refresh();
+            OpenedNodes.Add(source);
             links_to_visit.Push(reverse_order is true ? source.Links.Reverse() : source.Links);
-            GConsole.WriteLine($"Start with N[{source.Order}]");
             while(links_to_visit.Count > 0)
             {
                 bool new_node = false;
@@ -75,26 +78,24 @@ public sealed class GraphDebugger(GraphConsole GConsole)
                     bool break_this = false;
                     var link = (LinkModel)model;
                     var node = visited_nodes.Peek();
-                    if(link.Source.Model == node)
+                    if(link.Source.Model == node && link.SourceMarker is not null)
                     {
-                        link.TargetMarker = LinkMarker.Arrow;
-                        link.SourceMarker = LinkMarker.Circle;
+                        continue;
                     }
-                    else
+                    if(link.Target.Model == node && link.TargetMarker is not null)
                     {
-                        link.SourceMarker = LinkMarker.Arrow;
-                        link.TargetMarker = LinkMarker.Circle;
+                        continue;
                     }
-                    link.Color ??= "gray";
+                    var prev_color = link.Color;
+                    link.Color = "yellow";
                     link.Refresh();
-                    RunSignal.WaitOne();
-                    CancellationSource.Token.ThrowIfCancellationRequested();
-                    if(link.Color is "gray")
-                    {
-                        link.Color = null;
-                        link.Refresh();
-                        Rerender?.Invoke();
-                    }
+                    Rerender?.Invoke();
+                    time += Stopwatch.GetElapsedTime(timestamp);
+                    Task.Delay(StepTime * 500).GetAwaiter().GetResult();
+                    timestamp = Stopwatch.GetTimestamp();
+                    link.Color = prev_color;
+                    link.Refresh();
+                    Rerender?.Invoke();
                     if(link.Color is not null)
                     {
                         goto NextLink;
@@ -104,35 +105,34 @@ public sealed class GraphDebugger(GraphConsole GConsole)
                     {
                         goto NextLink;
                     }
+                    ActionCount += 1;
+                    OpenedNodes.Add(next_node);
                     break_this = true;
                     new_node = true;
                     node.State &= ~GraphNode.State.Current;
-                    node.Refresh();
                     visited_nodes.Push(next_node);
                     next_node.State |= GraphNode.State.Current;
                     next_node.State |= GraphNode.State.PathPart;
-                    next_node.Refresh();
                     link.Color = "indianred";
+                    node.Refresh();
+                    next_node.Refresh();
                     link.Refresh();
-                    GConsole.WriteLine($"N[{node.Order}]->N[{next_node.Order}]");
                     if(next_node == destination)
                     {
-                        link.SourceMarker = null;
-                        link.TargetMarker = null;
-                        link.Refresh();
                         next_node.State &= ~GraphNode.State.Current;
                         next_node.Refresh();
-                        GConsole.WriteLine("Destination node reached");
-                        GConsole.WriteLine($"Path: {string.Join("->", visited_nodes.Reverse().Select(node => $"N[{node.Order}]"))}");
-                        Running = false;
+                        GConsole.WriteLine("Destination node reached!");
+                        GConsole.WriteLine($"NodeCount: {visited_nodes.Count}");
+                        GConsole.WriteLine($"EdgeCount: {diagram.Links.Where(link => link is LinkModel model && model.Color is "indianred").Count()}");
+                        GConsole.WriteLine($"ActionCount: {ActionCount}");
+                        GConsole.WriteLine($"OpenedNodeCount: {OpenedNodes.Count}");
+                        GConsole.WriteLine($"Time: {time + Stopwatch.GetElapsedTime(timestamp)}");
+                        GConsole.WriteLine($"Path: {string.Join(" => ", visited_nodes.Reverse().Select(node => $"N[{node.Order}]"))}");
                         return;
                     }
                     links_to_visit.Push(reverse_order is true ? next_node.Links.Reverse() : next_node.Links);
                     NextLink: 
                     {
-                        link.SourceMarker = null;
-                        link.TargetMarker = null;
-                        link.Refresh();
                         Rerender?.Invoke();
                         if(break_this is true)
                         {
@@ -140,6 +140,7 @@ public sealed class GraphDebugger(GraphConsole GConsole)
                         }
                     }
                 }
+                ActionCount += 1;
                 if(new_node is true)
                 {
                     continue;
@@ -151,8 +152,7 @@ public sealed class GraphDebugger(GraphConsole GConsole)
                 visited_nodes.Pop();
                 if(visited_nodes.TryPeek(out GraphNode.Model? previous_node) is false)
                 {
-                    GConsole.WriteLine("Path not found");
-                    Running = false;
+                    GConsole.WriteLine("Path not found!");
                     return;
                 }
                 previous_node.State |= GraphNode.State.Current;
@@ -162,12 +162,17 @@ public sealed class GraphDebugger(GraphConsole GConsole)
                 (links[0] as LinkModel)?.Color = null;
                 links[0].Refresh();
                 links_to_visit.Push(links.Skip(1).ToArray());
-                GConsole.WriteLine($"N[{previous_node.Order}]<-N[{this_node.Order}]");
+                Rerender?.Invoke();
+                time += Stopwatch.GetElapsedTime(timestamp);
+                Task.Delay(StepTime * 500).GetAwaiter().GetResult();
+                timestamp = Stopwatch.GetTimestamp();
             }
         }
     }
-    public async ValueTask StopAsync(BlazorDiagram diagram)
+    public void Stop(BlazorDiagram diagram)
     {
+        ActionCount = 0;
+        OpenedNodes.Clear();
         diagram.Nodes.OfType<GraphNode.Model>().ToList().ForEach(node =>
         {
             node.State &= ~GraphNode.State.Current;
@@ -177,18 +182,9 @@ public sealed class GraphDebugger(GraphConsole GConsole)
         diagram.Links.OfType<LinkModel>().ToList().ForEach(link =>
         {
             link.Color = null;
-            link.SourceMarker = null;
-            link.TargetMarker = null;
             link.Refresh();
         });
-        Task cancel_task = CancellationSource.CancelAsync();
-        RunSignal.Set();
-        await cancel_task;
-        CancellationSource.Dispose();
-        RunSignal.Dispose();
-        CancellationSource = new CancellationTokenSource();
-        RunSignal = new AutoResetEvent(false);
+        GConsole.Clear();
         Running = false;
-        Rerender?.Invoke();
     }
 }

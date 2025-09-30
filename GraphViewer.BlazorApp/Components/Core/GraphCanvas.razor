@@ -1,0 +1,146 @@
+@implements IDisposable
+@code
+{
+    protected override void OnInitialized()
+    {
+        BlazorDiagramOptions options = new()
+        {
+            AllowMultiSelection = true
+        };
+        BlazorDiagram = new BlazorDiagram(options);
+        BlazorDiagram.RegisterComponent<GraphNode.Model, GraphNode>();
+        BlazorDiagram.UnregisterBehavior<DragMovablesBehavior>();
+        BlazorDiagram.RegisterBehavior(new GraphDragBehavior(BlazorDiagram));
+        BlazorDiagram.RegisterBehavior(new AddNodeBehavior(BlazorDiagram));
+        KeyboardShortcutsBehavior ksb = BlazorDiagram.GetBehavior<KeyboardShortcutsBehavior>()!;
+        ksb.SetShortcut("s", ctrl: false, shift: false, alt: false, SetSourceNode);
+        ksb.SetShortcut("d", ctrl: false, shift: false, alt: false, SetDestinationNode);
+        ksb.SetShortcut("a", ctrl: false, shift: false, alt: false, SetArrow); 
+        ksb.SetShortcut("r", ctrl: false, shift: false, alt: false, SetReverseArrow);
+        ksb.SetShortcut("e", ctrl: false, shift: false, alt: false, SetEdge);
+        BlazorDiagram.Nodes.Removed += ReorderNodes;
+    }
+}
+
+<CascadingValue Value=@BlazorDiagram IsFixed>
+    <DiagramCanvas>
+        <Widgets>
+            <SelectionBoxWidget />
+            <GridWidget Mode=@GridMode.Line Size=@(50.0) />
+        </Widgets>
+    </DiagramCanvas>
+</CascadingValue>
+
+@code
+{
+    #region Instance
+    public BlazorDiagram BlazorDiagram { get; private set; } = null!;
+
+    private void ReorderNodes(NodeModel _)
+    {
+        foreach((int index, NodeModel node) in BlazorDiagram.Nodes.Index())
+        {
+            node.Order = index + 1;
+            node.Refresh();
+        }
+        InvokeAsync(StateHasChanged);
+    }
+    private ValueTask SetSourceNode(Diagram diagram)
+    {
+        if(diagram.GetSelectedModels().FirstOrDefault() is not GraphNode.Model node)
+        {
+            return ValueTask.CompletedTask;
+        }
+        if((node.State & GraphNode.State.Destination) is not 0)
+        {
+            var model = diagram.Nodes.FirstOrDefault(node => node is GraphNode.Model graph_node && (graph_node.State & GraphNode.State.Source) is not 0) as GraphNode.Model;
+            model?.State |= GraphNode.State.Destination;
+            model?.State &= ~GraphNode.State.Source;
+            model?.Refresh();
+        }
+        node.State |= GraphNode.State.Source;
+        node.State &= ~GraphNode.State.Destination;
+        foreach(NodeModel base_node in diagram.Nodes)
+        {
+            if(base_node is GraphNode.Model node2 && node2 != node)
+            {
+                node2.State &= ~GraphNode.State.Source;
+                node2.Refresh();
+            }
+        }
+        node.Refresh();
+        InvokeAsync(StateHasChanged);
+        return ValueTask.CompletedTask;
+    }
+    private ValueTask SetDestinationNode(Diagram diagram)
+    {
+        if(diagram.GetSelectedModels().FirstOrDefault() is not GraphNode.Model node)
+        {
+            return ValueTask.CompletedTask;
+        }
+        if((node.State & GraphNode.State.Source) is not 0)
+        {
+            var model = diagram.Nodes.FirstOrDefault(node => node is GraphNode.Model graph_node && (graph_node.State & GraphNode.State.Destination) is not 0) as GraphNode.Model;
+            model?.State |= GraphNode.State.Source;
+            model?.State &= ~GraphNode.State.Destination;    
+            model?.Refresh();
+        }
+        node.State |= GraphNode.State.Destination;
+        node.State &= ~GraphNode.State.Source;
+        foreach(NodeModel base_node in diagram.Nodes)
+        {
+            if(base_node is GraphNode.Model node2 && node2 != node)
+            {
+                node2.State &= ~GraphNode.State.Destination;
+                node2.Refresh();
+            }
+        }
+        node.Refresh();
+        InvokeAsync(StateHasChanged);
+        return ValueTask.CompletedTask;
+    }
+    private ValueTask SetArrow(Diagram diagram)
+    {
+        if(diagram.GetSelectedModels().FirstOrDefault() is not LinkModel link)
+        {
+            return ValueTask.CompletedTask;
+        }
+        link.SourceMarker = null;
+        link.TargetMarker = LinkMarker.Arrow;
+        link.Refresh();
+        InvokeAsync(StateHasChanged);
+        return ValueTask.CompletedTask;
+    }
+    private ValueTask SetReverseArrow(Diagram diagram)
+    {
+        if(diagram.GetSelectedModels().FirstOrDefault() is not LinkModel link)
+        {
+            return ValueTask.CompletedTask;
+        }
+        link.SourceMarker = LinkMarker.Arrow;
+        link.TargetMarker = null;
+        link.Refresh();
+        InvokeAsync(StateHasChanged);
+        return ValueTask.CompletedTask;
+    }
+    private ValueTask SetEdge(Diagram diagram)
+    {
+        if(diagram.GetSelectedModels().FirstOrDefault() is not LinkModel link)
+        {
+            return ValueTask.CompletedTask;
+        }
+        link.SourceMarker = null;
+        link.TargetMarker = null;
+        link.Refresh();
+        InvokeAsync(StateHasChanged);
+        return ValueTask.CompletedTask;
+    }
+    #endregion
+
+    #region IDisposable
+    public void Dispose()
+    {          
+        BlazorDiagram.Nodes.Removed -= ReorderNodes;
+    }
+    #endregion
+}
